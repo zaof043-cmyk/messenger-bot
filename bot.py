@@ -1,4 +1,11 @@
-from flask import Flask, request
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+from flask import Flask, from
 import json
 import requests
 
