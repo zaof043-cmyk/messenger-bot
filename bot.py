@@ -12,7 +12,6 @@ load_dotenv()
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
-# تأكد إن التوكنات موجودة
 if not PAGE_ACCESS_TOKEN or not VERIFY_TOKEN:
     raise ValueError("❌ PAGE_ACCESS_TOKEN أو VERIFY_TOKEN غير موجودين في .env")
 
@@ -25,7 +24,6 @@ DATA_FILE = "data.json"
 # =========================
 # أدوات مساعدة
 # =========================
-
 def load_data():
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -44,16 +42,12 @@ def save_data(data):
 def send_message(recipient_id, text):
     url = "https://graph.facebook.com/v16.0/me/messages"
     params = {"access_token": PAGE_ACCESS_TOKEN}
-    payload = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": text}
-    }
+    payload = {"recipient": {"id": recipient_id}, "message": {"text": text}}
     requests.post(url, params=params, json=payload)
 
 # =========================
 # Webhook
 # =========================
-
 @app.route("/webhook", methods=["GET"])
 def verify():
     mode = request.args.get("hub.mode")
@@ -67,52 +61,35 @@ def verify():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json()
-
     for entry in data.get("entry", []):
         for event in entry.get("messaging", []):
             sender_id = event["sender"]["id"]
-
             if "message" in event and "text" in event["message"]:
                 text = event["message"]["text"].strip()
                 handle_command(sender_id, text)
-
     return "OK", 200
 
 # =========================
 # الأوامر
 # =========================
-
 def handle_command(sender_id, text):
     data = load_data()
 
-    # -------- مهام --------
+    # --- مهام ---
     if text == "مهام":
-        send_message(
-            sender_id,
-            data["tasks"] or "لا توجد مهام حاليًا"
-        )
+        send_message(sender_id, data["tasks"] or "لا توجد مهام حاليًا")
 
-    # -------- إعلان --------
+    # --- إعلان ---
     elif text == "اعلان":
-        send_message(
-            sender_id,
-            data["announcement"] or "لا يوجد إعلان"
-        )
+        send_message(sender_id, data["announcement"] or "لا يوجد إعلان")
 
-    # -------- ملف اللاعب --------
+    # --- ملف اللاعب ---
     elif text == "ملف":
         player = data["players"].get(str(sender_id))
-
         if not player:
-            player = {
-                "level": 1,
-                "points": 0,
-                "xp": 0,
-                "warnings": 0
-            }
+            player = {"level": 1, "points": 0, "xp": 0, "warnings": 0}
             data["players"][str(sender_id)] = player
             save_data(data)
-
         send_message(
             sender_id,
             f"🎖 المستوى: {player['level']}\n"
@@ -121,14 +98,13 @@ def handle_command(sender_id, text):
             f"⚠ التحذيرات: {player['warnings']}"
         )
 
-    # -------- غير معروف --------
+    # --- أمر غير معروف ---
     else:
         send_message(sender_id, "❓ أمر غير معروف")
 
 # =========================
 # تشغيل السيرفر
 # =========================
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
